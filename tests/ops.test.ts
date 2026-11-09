@@ -264,6 +264,15 @@ describe('setDepth', () => {
     expect(serializeDoc(setDepth(indented, again, 0))).toBe(sample);
   });
 
+  it('une tache indentee est vue en profondeur 1 par l\'index (epingle le rendu de l\'UI)', () => {
+    const doc = parseDoc(sample);
+    const ref = refOf(taskOf(doc, '2026-10-27', 'Corpus data'));
+    const indented = setDepth(doc, ref, 1);
+    const view = taskOf(indented, '2026-10-27', 'Corpus data');
+    expect(view.depth).toBe(1);
+    expect(view.raw).toBe('\t- [x] Corpus data 7h');
+  });
+
   it('decale aussi les sous-taches', () => {
     const doc = parseDoc('#### Semaine du 26/10/2026\nLundi\n- [ ] A\n- [ ] B\n\t- [ ] C\n');
     const ref = refOf(taskOf(doc, '2026-10-26', 'B'));

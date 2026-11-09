@@ -1,11 +1,14 @@
-import { ItemView, Notice } from 'obsidian';
+import { ItemView, Menu, Notice, setIcon } from 'obsidian';
 import type { WorkspaceLeaf } from 'obsidian';
 import { buildDayModel } from '../calendar-model';
 import type { DayRowModel } from '../calendar-model';
+import { mondayOf } from '../dates';
 import type { Doc } from '../doc';
 import { parseHoursInput } from '../hours';
 import type TaskCalendarPlugin from '../main';
-import { addTask, updateTask } from '../ops';
+import { addTask, copyTask, moveTask, removeTask, setDepth, updateTask } from '../ops';
+import { ConfirmModal } from './confirm-modal';
+import { PickDateModal } from './pick-date-modal';
 
 export const DAY_VIEW = 'task-calendar-day';
 
@@ -102,9 +105,63 @@ export class DayPanel extends ItemView {
     this.pendingFocus = focus;
     try {
       await this.plugin.store.edit(edit);
+    } catch (error) {
+      if (error instanceof Error && error.message === 'no-parent') {
+        new Notice("Impossible d'indenter : il faut une tâche juste au-dessus.");
+      } else {
+        console.error('Task Calendar : opération impossible', error);
+        new Notice('Task Calendar : opération impossible (voir la console).');
+      }
     } finally {
       this.pendingFocus = null;
     }
+  }
+
+  private pickMove(row: DayRowModel): void {
+    const date = this.plugin.selectedDate;
+    new PickDateModal(this.app, {
+      title: 'Reporter la tâche',
+      multiple: false,
+      weekMonday: mondayOf(date),
+      fromDate: date,
+      onSubmit: ([target]) => void this.run(null, (doc) => moveTask(doc, row.ref, target)),
+    }).open();
+  }
+
+  private pickCopy(row: DayRowModel): void {
+    const date = this.plugin.selectedDate;
+    new PickDateModal(this.app, {
+      title: 'Copier la tâche vers…',
+      multiple: true,
+      weekMonday: mondayOf(date),
+      fromDate: date,
+      onSubmit: (targets) => void this.run(null, (doc) => copyTask(doc, row.ref, targets)),
+    }).open();
+  }
+
+  private remove(row: DayRowModel, hasChildren: boolean): void {
+    const doRemove = (): void => void this.run(null, (doc) => removeTask(doc, row.ref));
+    if (!hasChildren) {
+      doRemove();
+      return;
+    }
+    new ConfirmModal(
+      this.app,
+      'Cette tâche a des sous-tâches : elles seront supprimées avec elle.',
+      'Supprimer',
+      doRemove,
+    ).open();
+  }
+
+  private openMenu(event: MouseEvent, row: DayRowModel, hasChildren: boolean): void {
+    const menu = new Menu();
+    menu.addItem((item) => item.setTitle('Reporter…').setIcon('arrow-right').onClick(() => this.pickMove(row)));
+    menu.addItem((item) => item.setTitle('Copier vers…').setIcon('copy').onClick(() => this.pickCopy(row)));
+    menu.addSeparator();
+    menu.addItem((item) =>
+      item.setTitle('Supprimer').setIcon('trash-2').onClick(() => this.remove(row, hasChildren)),
+    );
+    menu.showAtMouseEvent(event);
   }
 
   private async addNew(): Promise<void> {
@@ -145,7 +202,8 @@ export class DayPanel extends ItemView {
       list.createDiv({ text: 'Aucune tâche ce jour.', cls: 'tc-no-task' });
     }
     model.rows.forEach((row, position) => {
-      this.renderRow(list, row, position === model.rows.length - 1);
+      const hasChildren = (model.rows[position + 1]?.depth ?? 0) > row.depth;
+      this.renderRow(list, row, position, position === model.rows.length - 1, hasChildren);
     });
 
     root.createEl('button', { text: '+ Ajouter une tâche', cls: 'tc-add' }).addEventListener('click', () => {
@@ -161,7 +219,13 @@ export class DayPanel extends ItemView {
     this.restoreFocus(focus);
   }
 
-  private renderRow(list: HTMLElement, row: DayRowModel, isLast: boolean): void {
+  private renderRow(
+    list: HTMLElement,
+    row: DayRowModel,
+    position: number,
+    isLast: boolean,
+    hasChildren: boolean,
+  ): void {
     const rowEl = list.createDiv({ cls: 'tc-row' });
     rowEl.style.paddingLeft = `${row.depth * 1.5}rem`;
     if (row.done) rowEl.addClass('is-done');
@@ -202,6 +266,23 @@ export class DayPanel extends ItemView {
         attr: { title: 'Heures non reconnues : laissées dans le texte, exclues des totaux.' },
       });
     }
+
+    const indent = rowEl.createEl('button', {
+      cls: 'clickable-icon tc-indent',
+      attr: { 'aria-label': row.depth === 0 ? 'Mettre en sous-tâche' : 'Remonter au premier niveau' },
+    });
+    setIcon(indent, row.depth === 0 ? 'indent-increase' : 'indent-decrease');
+    if (row.depth === 0 && position === 0) indent.disabled = true;
+    indent.addEventListener('click', () => {
+      void this.run(null, (doc) => setDepth(doc, row.ref, row.depth === 0 ? 1 : 0));
+    });
+
+    const more = rowEl.createEl('button', {
+      text: '⋯',
+      cls: 'clickable-icon tc-more',
+      attr: { 'aria-label': "Plus d'actions" },
+    });
+    more.addEventListener('click', (event) => this.openMenu(event, row, hasChildren));
 
     const commitText = async (): Promise<void> => {
       const value = text.value.trim();

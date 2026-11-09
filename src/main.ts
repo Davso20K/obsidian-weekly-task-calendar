@@ -5,6 +5,7 @@ import type { TaskCalendarSettings } from './settings';
 import { TaskStore } from './store';
 import { CALENDAR_VIEW, CalendarView } from './views/calendar-view';
 import { DAY_VIEW, DayPanel } from './views/day-panel';
+import { DiagnosticModal } from './views/diagnostic-modal';
 
 export default class TaskCalendarPlugin extends Plugin {
   settings: TaskCalendarSettings = { ...DEFAULT_SETTINGS };
@@ -30,6 +31,14 @@ export default class TaskCalendarPlugin extends Plugin {
       name: 'Ouvrir le calendrier des tâches',
       callback: () => {
         void this.openCalendar();
+      },
+    });
+
+    this.addCommand({
+      id: 'diagnostic',
+      name: 'Diagnostic du fichier de tâches',
+      callback: () => {
+        new DiagnosticModal(this.app, this.store.path(), this.store.index.diagnostics).open();
       },
     });
 

@@ -178,3 +178,54 @@
   white-space: pre-wrap;
   margin: var(--size-4-1) 0 0;
 }
+
+.task-calendar-day .tc-row .tc-indent,
+.task-calendar-day .tc-row .tc-more {
+  flex: none;
+}
+
+.task-calendar-day .tc-row .tc-indent:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+/* Modales : choix de jours, confirmation, diagnostic */
+.tc-pick-date .tc-pick-days {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-2-2);
+  margin: var(--size-4-3) 0;
+}
+
+.tc-pick-date .tc-pick-day {
+  display: flex;
+  align-items: center;
+  gap: var(--size-4-2);
+  justify-content: flex-start;
+}
+
+.tc-pick-date .tc-pick-free {
+  display: flex;
+  align-items: center;
+  gap: var(--size-4-2);
+}
+
+.tc-pick-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--size-4-2);
+  margin-top: var(--size-4-4);
+}
+
+.tc-diagnostic table {
+  width: 100%;
+  font-size: var(--font-ui-smaller);
+}
+
+.tc-diagnostic th,
+.tc-diagnostic td {
+  text-align: left;
+  padding: var(--size-2-2) var(--size-4-2);
+  border-bottom: 1px solid var(--background-modifier-border);
+  vertical-align: top;
+}
