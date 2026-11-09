@@ -154,6 +154,7 @@
 .wtc-day-panel .wtc-text {
   flex: 1;
   min-width: 0;
+  height: var(--wtc-height, auto);
   resize: none;
   overflow: hidden;
   line-height: 1.4;
@@ -163,7 +164,7 @@
 }
 
 .wtc-day-panel .wtc-text.wtc-measuring {
-  height: auto !important;
+  height: auto;
 }
 
 .wtc-day-panel .wtc-hours {

@@ -41,7 +41,7 @@ function fitTextarea(field: HTMLTextAreaElement): void {
   field.addClass('wtc-measuring'); // hauteur automatique le temps de mesurer le contenu
   const height = field.scrollHeight;
   field.removeClass('wtc-measuring');
-  field.setCssProps({ height: `${height}px` });
+  field.setCssProps({ '--wtc-height': `${height}px` });
 }
 
 export class DayPanel extends ItemView {
