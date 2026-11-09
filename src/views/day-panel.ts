@@ -38,8 +38,10 @@ const isTextual = (field: TextField): boolean => field.tagName === 'TEXTAREA' ||
 
 /** Le texte d'une tache passe a la ligne : la hauteur suit le contenu. */
 function fitTextarea(field: HTMLTextAreaElement): void {
-  field.style.height = 'auto';
-  field.style.height = `${field.scrollHeight}px`;
+  field.addClass('wtc-measuring'); // hauteur automatique le temps de mesurer le contenu
+  const height = field.scrollHeight;
+  field.removeClass('wtc-measuring');
+  field.setCssProps({ height: `${height}px` });
 }
 
 export class DayPanel extends ItemView {
@@ -284,7 +286,7 @@ export class DayPanel extends ItemView {
     hasChildren: boolean,
   ): void {
     const rowEl = list.createDiv({ cls: 'wtc-row' });
-    rowEl.style.paddingLeft = `${row.depth * 1.5}rem`;
+    rowEl.setCssProps({ '--wtc-depth': String(row.depth) });
     if (row.done) rowEl.addClass('is-done');
     const key = String(row.ref.index);
 

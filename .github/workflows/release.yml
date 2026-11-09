@@ -9,6 +9,8 @@ on:
 
 permissions:
   contents: write
+  id-token: write # attestations de provenance
+  attestations: write
 
 jobs:
   release:
@@ -25,6 +27,14 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+
+      - name: Attester la provenance des fichiers publies
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: |
+            main.js
+            manifest.json
+            styles.css
 
       - name: Le tag doit etre la version du manifeste
         run: |

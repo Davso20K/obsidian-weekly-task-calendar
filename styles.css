@@ -131,6 +131,7 @@
   display: flex;
   align-items: flex-start;
   gap: var(--size-4-2);
+  padding-left: calc(var(--wtc-depth, 0) * 1.5rem);
 }
 
 .wtc-day-panel .wtc-row input[type='checkbox'] {
@@ -159,6 +160,10 @@
   min-height: 0;
   padding-top: 0.3rem;
   padding-bottom: 0.3rem;
+}
+
+.wtc-day-panel .wtc-text.wtc-measuring {
+  height: auto !important;
 }
 
 .wtc-day-panel .wtc-hours {

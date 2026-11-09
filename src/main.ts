@@ -67,7 +67,8 @@ export default class TaskCalendarPlugin extends Plugin {
   }
 
   async loadSettings(): Promise<void> {
-    this.settings = { ...DEFAULT_SETTINGS, ...(await this.loadData()) };
+    const saved = (await this.loadData()) as Partial<TaskCalendarSettings> | null;
+    this.settings = { ...DEFAULT_SETTINGS, ...saved };
   }
 
   async saveSettings(): Promise<void> {

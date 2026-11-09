@@ -1,6 +1,6 @@
 {
   "name": "weekly-task-calendar",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "private": true,
   "description": "Obsidian plugin: a calendar and a day panel to fill weekly tasks and hours in a Markdown file",
   "license": "MIT",
