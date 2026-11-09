@@ -1,0 +1,9 @@
+{
+  "id": "task-calendar",
+  "name": "Task Calendar",
+  "version": "0.1.0",
+  "minAppVersion": "1.5.0",
+  "description": "Grand calendrier et panneau du jour pour remplir vos taches directement dans votre fichier Markdown.",
+  "author": "fafomale",
+  "isDesktopOnly": false
+}
