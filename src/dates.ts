@@ -32,6 +32,11 @@ function isoFromMs(ms: number): string {
   return toIso(date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate());
 }
 
+/** Date du jour dans le fuseau local de l'utilisateur (et non en UTC). */
+export function todayIso(now: Date = new Date()): string {
+  return toIso(now.getFullYear(), now.getMonth() + 1, now.getDate());
+}
+
 /** '13/07/2026' ou '013/07/2026' -> '2026-07-13' ; null si invalide (ex. 31/02). */
 export function parseFrDate(s: string): string | null {
   const match = /^\s*(\d{1,3})\/(\d{1,2})\/(\d{4})\s*$/.exec(s);

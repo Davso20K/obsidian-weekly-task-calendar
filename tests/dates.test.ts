@@ -6,6 +6,7 @@ import {
   mondayOf,
   monthGrid,
   parseFrDate,
+  todayIso,
   weekdayFromName,
   weekdayIndex,
 } from '../src/dates';
@@ -51,6 +52,11 @@ describe('dates', () => {
     expect(weekdayFromName('Dimanche')).toBe(6);
     expect(weekdayFromName('Lundis')).toBeNull();
     expect(WEEKDAYS_FR[4]).toBe('Vendredi');
+  });
+
+  it('todayIso utilise la date locale', () => {
+    expect(todayIso(new Date(2026, 9, 26, 23, 59))).toBe('2026-10-26');
+    expect(todayIso(new Date(2026, 0, 5, 0, 1))).toBe('2026-01-05');
   });
 
   it('construit la grille du mois en semaines de 7 jours, lundi en premier', () => {
