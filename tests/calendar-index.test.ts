@@ -88,6 +88,37 @@ describe('doublons', () => {
   });
 });
 
+describe('jour repete dans la semaine (notes de fin de fichier)', () => {
+  const text = [
+    '#### Semaine du 26/10/2026',
+    'Lundi',
+    '- [ ] a',
+    'Mardi',
+    '- [ ] b',
+    'Mercredi',
+    '- [ ] c',
+    '',
+    'Mardi',
+    'plan de mardi prochain',
+    'Mercredi',
+    'voir responsivite',
+    '',
+  ].join('\n');
+  const repeated = buildIndex(parseDoc(text));
+
+  it('le premier en-tete d\'un jour fait foi : la repetition est du texte libre', () => {
+    expect(repeated.days.get('2026-10-28')?.blocks).toHaveLength(1);
+    expect(repeated.days.get('2026-10-28')?.tasks.map((t) => t.text)).toEqual(['c']);
+    const free = repeated.days.get('2026-10-28')?.freeLines.map((l) => l.raw) ?? [];
+    expect(free).toEqual(expect.arrayContaining(['Mardi', 'plan de mardi prochain', 'Mercredi', 'voir responsivite']));
+  });
+
+  it('la repetition reste signalee par le diagnostic', () => {
+    const lines = repeated.diagnostics.filter((d) => d.kind === 'duplicate-day').map((d) => d.line);
+    expect(lines).toEqual([9, 11]);
+  });
+});
+
 describe('taches', () => {
   it('calcule profondeur, heures et etat', () => {
     const tuesday = index.days.get('2026-07-14');

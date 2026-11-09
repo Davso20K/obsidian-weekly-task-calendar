@@ -117,6 +117,18 @@ describe('addTask', () => {
     expect(result).toBe('#### Semaine du 26/10/2026\nLundi\n- [ ] a\n- [ ] b');
   });
 
+  it('un jour repete dans les notes de fin ne detourne pas l\'insertion (cas reel)', () => {
+    const text =
+      '#### Semaine du 26/10/2026\nLundi\n- [ ] a\nMardi\n- [ ] b\nMercredi\n- [ ] c\n\nMardi\nplan de mardi\nMercredi\nnote\n';
+    const doc = parseDoc(text);
+    const added = serializeDoc(addTask(doc, '2026-10-28', { text: 'd', minutes: null }));
+    expect(lines(added).indexOf('- [ ] d')).toBe(lines(added).indexOf('- [ ] c') + 1);
+    const week = serializeDoc(addTask(doc, '2026-11-02', { text: 'e', minutes: null }));
+    const out = lines(week);
+    expect(out.indexOf('#### Semaine du 02/11/2026')).toBeGreaterThan(out.indexOf('- [ ] c'));
+    expect(out.indexOf('#### Semaine du 02/11/2026')).toBeLessThan(out.lastIndexOf('Mardi'));
+  });
+
   it('ne modifie pas le Doc recu', () => {
     const doc = parseDoc(sample);
     addTask(doc, '2026-10-27', { text: 'x', minutes: null });
@@ -162,6 +174,15 @@ describe('updateTask', () => {
     const task = taskOf(doc, '2026-07-14', 'Plateforme formation test');
     const result = updateTask(doc, refOf(task), { text: task.text, minutes: 240, done: true });
     expect(serializeDoc(result)).toBe(sample);
+  });
+
+  it('on peut enchainer deux editions de la meme ligne avec la ligne predite (contrat du panneau)', () => {
+    const doc = parseDoc(sample);
+    const ref = refOf(taskOf(doc, '2026-10-27', 'Projet'));
+    const first = updateTask(doc, ref, { text: 'Projet v2' });
+    const predicted: LineRef = { index: ref.index, raw: first.lines[ref.index].raw };
+    const second = updateTask(first, predicted, { done: true });
+    expect(second.lines[ref.index].raw).toBe('- [x] Projet v2');
   });
 
   it('refuse une ligne perimee et laisse le document intact', () => {

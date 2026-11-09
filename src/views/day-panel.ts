@@ -25,6 +25,10 @@ const ZERO_HOURS = /^0+(?:[.,]0+)?\s*(?:h|min)?$/i;
 export class DayPanel extends ItemView {
   private pendingFocus: FocusTarget | null = null;
   private renderDeferred = false;
+  /** Vrai tant qu'un bouton de souris est enfonce : redessiner maintenant ferait perdre le clic. */
+  private pointerDown = false;
+  /** Les ecritures s'executent une par une, dans l'ordre ou l'utilisateur les a declenchees. */
+  private chain: Promise<void> = Promise.resolve();
 
   constructor(
     leaf: WorkspaceLeaf,
@@ -50,15 +54,26 @@ export class DayPanel extends ItemView {
     this.render();
     this.register(this.plugin.onSelect(() => this.render()));
     this.register(this.plugin.store.onChange(() => this.render()));
-    // Une mise a jour externe differee pendant une saisie est rejouee quand le champ perd le focus.
-    this.registerDomEvent(this.contentEl, 'focusout', () => {
-      window.setTimeout(() => {
-        if (this.renderDeferred && !this.isTyping()) {
-          this.renderDeferred = false;
-          this.render();
-        }
-      }, 0);
+    // Un rendu differe (saisie en cours, clic en cours) est rejoue des que c'est possible.
+    this.registerDomEvent(this.contentEl, 'focusout', () => window.setTimeout(() => this.flushDeferred(), 0));
+    this.registerDomEvent(this.contentEl, 'pointerdown', () => {
+      this.pointerDown = true;
     });
+    const release = (): void => {
+      window.setTimeout(() => {
+        this.pointerDown = false;
+        this.flushDeferred();
+      }, 0);
+    };
+    this.registerDomEvent(document, 'pointerup', release);
+    this.registerDomEvent(document, 'pointercancel', release);
+  }
+
+  private flushDeferred(): void {
+    if (this.renderDeferred && !this.pointerDown && !this.isTyping()) {
+      this.renderDeferred = false;
+      this.render();
+    }
   }
 
   /** Vrai si l'utilisateur est en train de saisir dans un champ du panneau (valeur non validee). */
@@ -101,19 +116,36 @@ export class DayPanel extends ItemView {
     }
   }
 
-  private async run(focus: FocusTarget | null, edit: (doc: Doc) => Doc): Promise<void> {
-    this.pendingFocus = focus;
-    try {
-      await this.plugin.store.edit(edit);
-    } catch (error) {
-      if (error instanceof Error && error.message === 'no-parent') {
-        new Notice("Impossible d'indenter : il faut une tâche juste au-dessus.");
-      } else {
-        console.error('Task Calendar : opération impossible', error);
-        new Notice('Task Calendar : opération impossible (voir la console).');
+  private run(focus: FocusTarget | null, edit: (doc: Doc) => Doc): Promise<void> {
+    const task = this.chain.then(async () => {
+      this.pendingFocus = focus;
+      try {
+        await this.plugin.store.edit(edit);
+      } catch (error) {
+        if (error instanceof Error && error.message === 'no-parent') {
+          new Notice("Impossible d'indenter : il faut une tâche juste au-dessus.");
+        } else {
+          console.error('Task Calendar : opération impossible', error);
+          new Notice('Task Calendar : opération impossible (voir la console).');
+        }
+      } finally {
+        this.pendingFocus = null;
       }
-    } finally {
-      this.pendingFocus = null;
+    });
+    this.chain = task; // les erreurs sont traitees ci-dessus : la chaine ne rejette jamais
+    return task;
+  }
+
+  /**
+   * Ligne attendue apres une edition de `row`. Permet d'enchainer une seconde action sur la meme ligne
+   * (ex. saisir un texte puis cocher) sans attendre le redessin, sans contourner la garde « ligne perimee ».
+   */
+  private predictRef(row: DayRowModel, patch: { text?: string; minutes?: number | null }): void {
+    try {
+      const next = updateTask(this.plugin.store.doc, row.ref, patch);
+      row.ref = { index: row.ref.index, raw: next.lines[row.ref.index].raw };
+    } catch {
+      // ligne deja perimee : l'ecriture echouera proprement et rechargera la vue
     }
   }
 
@@ -172,7 +204,7 @@ export class DayPanel extends ItemView {
   }
 
   private render(): void {
-    if (this.isTyping()) {
+    if (this.pointerDown || this.isTyping()) {
       this.renderDeferred = true;
       return;
     }
@@ -288,8 +320,10 @@ export class DayPanel extends ItemView {
       const value = text.value.trim();
       text.dataset.initial = text.value;
       if (value === row.text) return;
+      const before = row.ref;
       row.text = value;
-      await this.run(null, (doc) => updateTask(doc, row.ref, { text: value }));
+      this.predictRef(row, { text: value });
+      await this.run(null, (doc) => updateTask(doc, before, { text: value }));
     };
 
     const commitHours = async (): Promise<void> => {
@@ -311,8 +345,10 @@ export class DayPanel extends ItemView {
         hours.dataset.initial = '';
         return;
       }
+      const before = row.ref;
       row.hoursText = raw;
-      await this.run(null, (doc) => updateTask(doc, row.ref, { minutes }));
+      this.predictRef(row, { minutes });
+      await this.run(null, (doc) => updateTask(doc, before, { minutes }));
     };
 
     text.addEventListener('blur', () => void commitText());

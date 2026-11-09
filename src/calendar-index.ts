@@ -64,6 +64,8 @@ interface RawWeek {
   endIndex: number;
   headerDate: string | null;
   days: RawDay[];
+  /** Repetitions d'un jour deja ouvert dans la semaine : traitees comme du texte libre, mais signalees. */
+  duplicateDays: RawDay[];
 }
 
 const WEEK_HEADER = /^\s*#{1,6}\s*Semaine du\b(.*)$/i;
@@ -101,6 +103,7 @@ function scanStructure(doc: Doc): { weeks: RawWeek[]; orphanDays: RawDay[] } {
         endIndex: doc.lines.length,
         headerDate: parseWeekHeaderDate(line.raw),
         days: [],
+        duplicateDays: [],
       };
       weeks.push(currentWeek);
       currentDay = null;
@@ -108,8 +111,15 @@ function scanStructure(doc: Doc): { weeks: RawWeek[]; orphanDays: RawDay[] } {
     }
     const header = parseDayHeader(line.raw);
     if (!header) return;
+    const candidate: RawDay = { headerIndex: index, endIndex: doc.lines.length, ...header };
+    // Un nom de jour deja ouvert dans la semaine (ex. "Mardi" seul dans les notes de fin de fichier)
+    // n'ouvre pas de nouveau bloc : le premier en-tete fait foi, la ligne reste du texte libre.
+    if (currentWeek?.days.some((day) => day.weekday === header.weekday)) {
+      currentWeek.duplicateDays.push(candidate);
+      return;
+    }
     if (currentDay) currentDay.endIndex = index;
-    currentDay = { headerIndex: index, endIndex: doc.lines.length, ...header };
+    currentDay = candidate;
     (currentWeek ? currentWeek.days : orphanDays).push(currentDay);
   });
   return { weeks, orphanDays };
@@ -197,17 +207,16 @@ export function buildIndex(doc: Doc): CalendarIndex {
     seenMondays.add(monday);
     weeks.push({ monday, headerIndex: week.headerIndex, endIndex: week.endIndex });
 
-    const weekdaysSeen = new Set<number>();
+    for (const duplicate of week.duplicateDays) {
+      diagnostics.push({
+        line: duplicate.headerIndex + 1,
+        kind: 'duplicate-day',
+        message: `Jour ${addDays(monday, duplicate.weekday)} répété dans la semaine : cette ligne est traitée comme du texte libre.`,
+      });
+    }
+
     for (const rawDay of week.days) {
       const date = addDays(monday, rawDay.weekday);
-      if (weekdaysSeen.has(rawDay.weekday)) {
-        diagnostics.push({
-          line: rawDay.headerIndex + 1,
-          kind: 'duplicate-day',
-          message: `Jour ${date} present plusieurs fois dans la semaine : fusionne.`,
-        });
-      }
-      weekdaysSeen.add(rawDay.weekday);
       if (rawDay.typedDate && rawDay.typedDate !== date) {
         diagnostics.push({
           line: rawDay.headerIndex + 1,
