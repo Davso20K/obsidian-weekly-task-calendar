@@ -23,9 +23,23 @@ interface FocusTarget {
 
 const ZERO_HOURS = /^0+(?:[.,]0+)?\s*(?:h|min)?$/i;
 
+type TextField = HTMLInputElement | HTMLTextAreaElement;
+
 /** `instanceof` ne fonctionne pas entre fenetres (popout) : on teste la balise. */
-function asInput(element: Element | null): HTMLInputElement | null {
-  return element && element.tagName === 'INPUT' ? (element as HTMLInputElement) : null;
+function asTextField(element: Element | null): TextField | null {
+  if (!element) return null;
+  if (element.tagName === 'TEXTAREA') return element as HTMLTextAreaElement;
+  if (element.tagName === 'INPUT') return element as HTMLInputElement;
+  return null;
+}
+
+/** Champ de saisie de texte (et non une case a cocher). */
+const isTextual = (field: TextField): boolean => field.tagName === 'TEXTAREA' || field.type === 'text';
+
+/** Le texte d'une tache passe a la ligne : la hauteur suit le contenu. */
+function fitTextarea(field: HTMLTextAreaElement): void {
+  field.style.height = 'auto';
+  field.style.height = `${field.scrollHeight}px`;
 }
 
 export class DayPanel extends ItemView {
@@ -74,6 +88,14 @@ export class DayPanel extends ItemView {
     };
     this.registerDomEvent(doc, 'pointerup', release);
     this.registerDomEvent(doc, 'pointercancel', release);
+    // La largeur du panneau change le retour a la ligne : on reajuste la hauteur des champs.
+    const observer = new ResizeObserver(() => this.fitTextareas());
+    observer.observe(this.contentEl);
+    this.register(() => observer.disconnect());
+  }
+
+  private fitTextareas(): void {
+    this.contentEl.querySelectorAll<HTMLTextAreaElement>('textarea.wtc-text').forEach(fitTextarea);
   }
 
   private flushDeferred(): void {
@@ -85,32 +107,32 @@ export class DayPanel extends ItemView {
 
   /** Vrai si l'utilisateur est en train de saisir dans un champ du panneau (valeur non validee). */
   private isTyping(): boolean {
-    const active = asInput(this.contentEl.doc.activeElement);
+    const active = asTextField(this.contentEl.doc.activeElement);
     return (
       active !== null &&
       this.contentEl.contains(active) &&
-      active.type === 'text' &&
+      isTextual(active) &&
       active.value !== active.dataset.initial
     );
   }
 
   private captureFocus(): FocusTarget | null {
-    const active = asInput(this.contentEl.doc.activeElement);
+    const active = asTextField(this.contentEl.doc.activeElement);
     if (!active || !this.contentEl.contains(active)) return null;
     const { row, field } = active.dataset;
     if (row === undefined || field === undefined) return null;
     return {
       index: Number(row),
       field: field as Field,
-      start: active.type === 'text' ? active.selectionStart : null,
-      end: active.type === 'text' ? active.selectionEnd : null,
+      start: isTextual(active) ? active.selectionStart : null,
+      end: isTextual(active) ? active.selectionEnd : null,
     };
   }
 
   private restoreFocus(target: FocusTarget | null): void {
     if (!target) return;
     const candidates = Array.from(
-      this.contentEl.querySelectorAll<HTMLInputElement>(`input[data-field="${target.field}"]`),
+      this.contentEl.querySelectorAll<TextField>(`[data-field="${target.field}"]`),
     );
     const element =
       target.index === 'last'
@@ -118,7 +140,7 @@ export class DayPanel extends ItemView {
         : candidates.find((input) => input.dataset.row === String(target.index));
     if (!element) return;
     element.focus();
-    if (element.type === 'text' && target.start != null && target.end != null) {
+    if (isTextual(element) && target.start != null && target.end != null) {
       element.setSelectionRange(target.start, target.end);
     }
   }
@@ -250,6 +272,7 @@ export class DayPanel extends ItemView {
       notes.createEl('pre', { text: model.freeLines.join('\n') });
     }
 
+    this.fitTextareas();
     this.restoreFocus(focus);
   }
 
@@ -275,14 +298,14 @@ export class DayPanel extends ItemView {
       );
     });
 
-    const text = rowEl.createEl('input', {
-      type: 'text',
+    const text = rowEl.createEl('textarea', {
       cls: 'wtc-text',
-      value: row.text,
       placeholder: t('day.taskPlaceholder'),
-      attr: { 'data-row': key, 'data-field': 'text' },
+      attr: { rows: '1', 'data-row': key, 'data-field': 'text' },
     });
+    text.value = row.text;
     text.dataset.initial = row.text;
+    text.addEventListener('input', () => fitTextarea(text));
 
     const hours = rowEl.createEl('input', {
       type: 'text',
@@ -319,7 +342,7 @@ export class DayPanel extends ItemView {
     more.addEventListener('click', (event) => this.openMenu(event, row, hasChildren));
 
     const commitText = async (): Promise<void> => {
-      const value = text.value.trim();
+      const value = text.value.replace(/\s*[\r\n]+\s*/g, ' ').trim();
       text.dataset.initial = text.value;
       if (value === row.text) return;
       const before = row.ref;

@@ -32,12 +32,32 @@ No more copying last week's template and re-typing the headings.
   ("Week of" / "Semaine du", weekday names) can be English or French. Both are always understood when reading.
 - **Diagnostic** command listing inconsistencies in the file, without changing anything.
 
+## Screenshots
+
+![Monthly calendar with weekly totals and the day panel](docs/images/calendar.png)
+*The monthly calendar shows, for each day, tasks done / total and hours, plus a weekly total column. The panel on the right is the selected day.*
+
+| Day panel | Sub-tasks |
+| --- | --- |
+| ![Day panel with a note and an unrecognised-hours warning](docs/images/day-panel.png) | ![A task with two sub-tasks](docs/images/subtasks.png) |
+| Tick tasks, edit text and hours; free text of the day stays read-only. ⚠ flags hours the plugin could not read. | Sub-tasks are indented; their hours count in the totals. |
+
+| Task menu | Copy to several days |
+| --- | --- |
+| ![Task menu: move, copy, delete](docs/images/task-menu.png) | ![Copy a task to several days](docs/images/copy-dialog.png) |
+
+And the same data as a plain Markdown file, in reading mode:
+
+![The Markdown file in reading mode](docs/images/file-reading-mode.png)
+
+*Screenshots use fictional data ([`docs/demo/Tasks.md`](docs/demo/Tasks.md)) and Obsidian's French interface; the plugin follows Obsidian's language.*
+
 ## Install
 
 Not yet in the community plugin list. To install manually:
 
 1. Download `main.js`, `manifest.json` and `styles.css` from the
-   [latest release](https://github.com/Davso20K/obsidian-task-calendar/releases/latest).
+   [latest release](https://github.com/Davso20K/obsidian-weekly-task-calendar/releases/latest).
 2. Put them in `<your vault>/.obsidian/plugins/weekly-task-calendar/`.
 3. In Obsidian: **Settings → Community plugins**, reload the list, enable **Weekly Task Calendar**.
 

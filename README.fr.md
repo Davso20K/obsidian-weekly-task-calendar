@@ -35,12 +35,32 @@ Plus besoin de recopier le gabarit de la semaine précédente ni de retaper les 
   à la lecture.
 - Commande de **diagnostic** qui liste les incohérences du fichier, sans rien modifier.
 
+## Captures d'écran
+
+![Calendrier mensuel avec totaux de la semaine et panneau du jour](docs/images/calendar.png)
+*Le calendrier mensuel affiche, pour chaque jour, les tâches faites / total et les heures, plus une colonne de total de la semaine. Le panneau de droite est le jour sélectionné.*
+
+| Panneau du jour | Sous-tâches |
+| --- | --- |
+| ![Panneau du jour avec une note et un avertissement d'heures non reconnues](docs/images/day-panel.png) | ![Une tâche avec deux sous-tâches](docs/images/subtasks.png) |
+| Cochez les tâches, modifiez texte et heures ; le texte libre du jour reste en lecture seule. ⚠ signale des heures que le plugin n'a pas pu lire. | Les sous-tâches sont indentées ; leurs heures comptent dans les totaux. |
+
+| Menu d'une tâche | Copier sur plusieurs jours |
+| --- | --- |
+| ![Menu d'une tâche : reporter, copier, supprimer](docs/images/task-menu.png) | ![Copier une tâche sur plusieurs jours](docs/images/copy-dialog.png) |
+
+Et les mêmes données en simple fichier Markdown, en mode lecture :
+
+![Le fichier Markdown en mode lecture](docs/images/file-reading-mode.png)
+
+*Les captures utilisent des données fictives ([`docs/demo/Tasks.md`](docs/demo/Tasks.md)) ; le texte des tâches est en anglais car ce sont des données de démonstration, l'interface du plugin suit la langue d'Obsidian.*
+
 ## Installation
 
 Pas encore dans la liste des plugins communautaires. Pour l'installer à la main :
 
 1. Téléchargez `main.js`, `manifest.json` et `styles.css` depuis la
-   [dernière release](https://github.com/Davso20K/obsidian-task-calendar/releases/latest).
+   [dernière release](https://github.com/Davso20K/obsidian-weekly-task-calendar/releases/latest).
 2. Placez-les dans `<votre coffre>/.obsidian/plugins/weekly-task-calendar/`.
 3. Dans Obsidian : **Paramètres → Modules complémentaires**, rechargez la liste, activez **Weekly Task Calendar**.
 
