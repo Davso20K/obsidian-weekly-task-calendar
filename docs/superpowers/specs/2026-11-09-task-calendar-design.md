@@ -46,7 +46,7 @@ Cinq unités à frontières nettes. Seules les vues et le store dépendent de l'
 | `store` | Lecture/écriture atomique du fichier via `vault.process`. Expose les opérations (ajouter, éditer, cocher, supprimer, indenter, reporter, copier). Recharge le modèle sur modification externe. | `parser` |
 | `CalendarView` | `ItemView` principale : grille mensuelle, résumés par jour, total hebdomadaire. | `store` |
 | `DayPanel` | `ItemView` latérale : liste éditable des tâches du jour. | `store` |
-| `settings` | Chemin du fichier, format de date, premier jour de semaine. | rien |
+| `settings` | Chemin du fichier cible (seul réglage en v1 : le format de date `JJ/MM/AAAA` et la semaine lundi→dimanche sont fixes). | rien |
 
 ## 4. Parseur et sérialiseur
 
@@ -84,6 +84,9 @@ Une durée est extraite **uniquement** si elle termine le texte de la tâche, é
 ou précédée de `:` :
 
 `6h` · `2h30` · `1h55` · `0h30min` · `30min` · `2,5h` · `(3h)` · `: 4h` · `4H`
+
+Une durée de plus de 12 h pour une seule tâche est traitée comme ambiguë (souvent une heure de rendez-vous,
+ex. `Reunion 17h30` dans le fichier réel).
 
 Les cas ambigus (`2 + 5h`, `8h-10h20`, un `4` isolé, une durée au milieu du texte) restent dans le texte. Le
 champ heures de la tâche est vide et le panneau affiche un indicateur « heures non reconnues ». Ces tâches ne
