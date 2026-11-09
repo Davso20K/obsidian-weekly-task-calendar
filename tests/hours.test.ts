@@ -13,6 +13,7 @@ describe('parseTrailingHours', () => {
     ['Correction 1h55', 'Correction', 115],
     ['Update 2h30', 'Update', 150],
     ['7h', '', 420],
+    ['x 12h', 'x', 720],
   ])('reconnait la duree de %j', (input, text, minutes) => {
     expect(parseTrailingHours(input)).toEqual({ text, minutes });
   });
@@ -24,6 +25,8 @@ describe('parseTrailingHours', () => {
     'a 8h-10h20',
     'reunion 4h puis suite',
     'Plateforme angelo (2h : 17h-19h)',
+    'Reunion 17h30', // heure de rendez-vous, pas une duree : > 12h par tache = ambigu
+    'x 13h',
     'sans duree',
     '',
   ])('laisse %j intact (duree ambigue ou absente)', (input) => {

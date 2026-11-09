@@ -19,11 +19,15 @@ function durationToMinutes(duration: string): number | null {
   return Math.round(hours * 60) + minutes;
 }
 
+// Une tache de plus de 12h est presque toujours une heure de rendez-vous ("Reunion 17h30"),
+// pas une duree : on la laisse dans le texte plutot que de fausser les totaux.
+const MAX_PLAUSIBLE_MINUTES = 12 * 60;
+
 export function parseTrailingHours(text: string): { text: string; minutes: number } | null {
   const match = IN_PARENS.exec(text) ?? BARE.exec(text);
   if (!match) return null;
   const minutes = durationToMinutes(match[2]);
-  if (minutes === null) return null;
+  if (minutes === null || minutes > MAX_PLAUSIBLE_MINUTES) return null;
   return { text: (match[1] ?? '').trim(), minutes };
 }
 
