@@ -3,7 +3,8 @@
 
 import { buildIndex } from './calendar-index';
 import type { CalendarIndex } from './calendar-index';
-import { WEEKDAYS_FR, addDays, formatFrDate, mondayOf, weekdayIndex } from './dates';
+import { addDays, formatFrDate, mondayOf, weekdayIndex, weekdayName } from './dates';
+import type { Lang } from './i18n';
 import { makeTaskLine, parseDoc, taskParts } from './doc';
 import type { Doc, DocLine, TaskLine } from './doc';
 import { formatHours } from './hours';
@@ -57,11 +58,13 @@ function spliceLines(doc: Doc, start: number, deleteCount: number, inserted: Doc
     toInsert = inserted.map((line, i) => (i === inserted.length - 1 ? { ...line, eol: '' } : line));
   }
   lines.splice(start, deleteCount, ...toInsert);
-  return { lines, eol: doc.eol };
+  return { ...doc, lines };
 }
 
-const dayHeaderText = (date: string): string => `${WEEKDAYS_FR[weekdayIndex(date)]} ${formatFrDate(date)}`;
-const weekHeaderText = (monday: string): string => `#### Semaine du ${formatFrDate(monday)}`;
+const dayHeaderText = (date: string, lang: Lang): string =>
+  `${weekdayName(weekdayIndex(date), lang)} ${formatFrDate(date)}`;
+const weekHeaderText = (monday: string, lang: Lang): string =>
+  `#### ${lang === 'fr' ? 'Semaine du' : 'Week of'} ${formatFrDate(monday)}`;
 
 function lastTaskIndex(doc: Doc, startIndex: number, endIndex: number): number {
   for (let i = endIndex - 1; i >= startIndex; i--) if (doc.lines[i].kind === 'task') return i;
@@ -77,6 +80,7 @@ function attachedEnd(doc: Doc, from: number, limit: number): number {
 
 function insertIntoMissingDay(doc: Doc, idx: CalendarIndex, date: string, tasks: TaskLine[]): Doc {
   const eol = doc.eol;
+  const lang: Lang = doc.headerLang ?? 'en';
   const blank = (): DocLine => ({ kind: 'other', raw: '', eol });
   const header = (raw: string): DocLine => ({ kind: 'other', raw, eol });
   const monday = mondayOf(date);
@@ -92,12 +96,12 @@ function insertIntoMissingDay(doc: Doc, idx: CalendarIndex, date: string, tasks:
       const lastTask = lastTaskIndex(doc, block.startIndex, block.endIndex);
       const from = lastTask >= 0 ? lastTask + 1 : block.headerIndex + 1;
       const pos = attachedEnd(doc, from, block.endIndex);
-      return spliceLines(doc, pos, 0, [blank(), header(dayHeaderText(date)), ...tasks]);
+      return spliceLines(doc, pos, 0, [blank(), header(dayHeaderText(date, lang)), ...tasks]);
     }
     // Aucun jour precedent dans la semaine : juste apres l'en-tete (et la ligne vide qui le suit).
     let pos = week.headerIndex + 1;
     if (isBlank(doc.lines[pos])) pos++;
-    const created: DocLine[] = [header(dayHeaderText(date)), ...tasks];
+    const created: DocLine[] = [header(dayHeaderText(date, lang)), ...tasks];
     if (pos < doc.lines.length) created.push(blank());
     return spliceLines(doc, pos, 0, created);
   }
@@ -116,9 +120,9 @@ function insertIntoMissingDay(doc: Doc, idx: CalendarIndex, date: string, tasks:
     const pos = attachedEnd(doc, last + 1, earlier.endIndex);
     return spliceLines(doc, pos, 0, [
       blank(),
-      header(weekHeaderText(monday)),
+      header(weekHeaderText(monday, lang)),
       blank(),
-      header(dayHeaderText(date)),
+      header(dayHeaderText(date, lang)),
       ...tasks,
     ]);
   }
@@ -126,18 +130,18 @@ function insertIntoMissingDay(doc: Doc, idx: CalendarIndex, date: string, tasks:
   if (idx.weeks.length > 0) {
     const first = Math.min(...idx.weeks.map((w) => w.headerIndex));
     return spliceLines(doc, first, 0, [
-      header(weekHeaderText(monday)),
+      header(weekHeaderText(monday, lang)),
       blank(),
-      header(dayHeaderText(date)),
+      header(dayHeaderText(date, lang)),
       ...tasks,
       blank(),
     ]);
   }
 
   const created: DocLine[] = [
-    header(weekHeaderText(monday)),
+    header(weekHeaderText(monday, lang)),
     blank(),
-    header(dayHeaderText(date)),
+    header(dayHeaderText(date, lang)),
     ...tasks,
   ];
   if (doc.lines.length > 0 && !isBlank(doc.lines[doc.lines.length - 1])) created.unshift(blank());

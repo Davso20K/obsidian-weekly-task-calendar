@@ -1,33 +1,33 @@
-/* Task Calendar : uniquement des variables de theme Obsidian. */
+/* Weekly Task Calendar : uniquement des variables de theme Obsidian. */
 
-.task-calendar {
+.wtc-calendar {
   padding: var(--size-4-3);
   display: flex;
   flex-direction: column;
   gap: var(--size-4-3);
 }
 
-.task-calendar .tc-empty {
+.wtc-calendar .wtc-empty {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: var(--size-4-2);
 }
 
-.task-calendar .tc-header {
+.wtc-calendar .wtc-header {
   display: flex;
   align-items: center;
   gap: var(--size-4-2);
 }
 
-.task-calendar .tc-title {
+.wtc-calendar .wtc-title {
   margin: 0;
   flex: 1;
   text-align: center;
   text-transform: capitalize;
 }
 
-.task-calendar .tc-grid {
+.wtc-calendar .wtc-grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr)) 4.5rem;
   gap: 1px;
@@ -37,7 +37,7 @@
   overflow: hidden;
 }
 
-.task-calendar .tc-weekday {
+.wtc-calendar .wtc-weekday {
   padding: var(--size-4-1) var(--size-4-2);
   background: var(--background-secondary);
   color: var(--text-muted);
@@ -45,7 +45,7 @@
   text-align: center;
 }
 
-.task-calendar .tc-cell {
+.wtc-calendar .wtc-cell {
   min-height: 5.5rem;
   padding: var(--size-4-1) var(--size-4-2);
   background: var(--background-primary);
@@ -55,25 +55,25 @@
   gap: var(--size-2-2);
 }
 
-.task-calendar .tc-cell:hover,
-.task-calendar .tc-cell:focus-visible {
+.wtc-calendar .wtc-cell:hover,
+.wtc-calendar .wtc-cell:focus-visible {
   background: var(--background-modifier-hover);
 }
 
-.task-calendar .tc-cell.is-weekend {
+.wtc-calendar .wtc-cell.is-weekend {
   background: var(--background-secondary);
 }
 
-.task-calendar .tc-cell.is-outside {
+.wtc-calendar .wtc-cell.is-outside {
   opacity: 0.45;
 }
 
-.task-calendar .tc-cell.is-selected {
+.wtc-calendar .wtc-cell.is-selected {
   background: var(--background-modifier-hover);
   box-shadow: inset 0 0 0 2px var(--interactive-accent);
 }
 
-.task-calendar .tc-cell.is-today .tc-day-number {
+.wtc-calendar .wtc-cell.is-today .wtc-day-number {
   background: var(--interactive-accent);
   color: var(--text-on-accent);
   border-radius: var(--radius-l);
@@ -81,20 +81,20 @@
   align-self: flex-start;
 }
 
-.task-calendar .tc-day-number {
+.wtc-calendar .wtc-day-number {
   font-weight: var(--font-semibold);
 }
 
-.task-calendar .tc-summary {
+.wtc-calendar .wtc-summary {
   color: var(--text-muted);
   font-size: var(--font-ui-smaller);
 }
 
-.task-calendar .tc-cell.is-complete .tc-summary {
+.wtc-calendar .wtc-cell.is-complete .wtc-summary {
   color: var(--interactive-accent);
 }
 
-.task-calendar .tc-week-total {
+.wtc-calendar .wtc-week-total {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -104,126 +104,126 @@
 }
 
 /* Panneau du jour */
-.task-calendar-day {
+.wtc-day-panel {
   padding: var(--size-4-3);
   display: flex;
   flex-direction: column;
   gap: var(--size-4-2);
 }
 
-.task-calendar-day .tc-day-title {
+.wtc-day-panel .wtc-day-title {
   margin: 0;
 }
 
-.task-calendar-day .tc-day-summary,
-.task-calendar-day .tc-no-task {
+.wtc-day-panel .wtc-day-summary,
+.wtc-day-panel .wtc-no-task {
   color: var(--text-muted);
   font-size: var(--font-ui-smaller);
 }
 
-.task-calendar-day .tc-rows {
+.wtc-day-panel .wtc-rows {
   display: flex;
   flex-direction: column;
   gap: var(--size-2-2);
 }
 
-.task-calendar-day .tc-row {
+.wtc-day-panel .wtc-row {
   display: flex;
   align-items: center;
   gap: var(--size-4-2);
 }
 
-.task-calendar-day .tc-row input[type='text'] {
+.wtc-day-panel .wtc-row input[type='text'] {
   background: transparent;
   border-color: transparent;
   box-shadow: none;
 }
 
-.task-calendar-day .tc-row input[type='text']:hover,
-.task-calendar-day .tc-row input[type='text']:focus {
+.wtc-day-panel .wtc-row input[type='text']:hover,
+.wtc-day-panel .wtc-row input[type='text']:focus {
   border-color: var(--background-modifier-border);
   background: var(--background-primary);
 }
 
-.task-calendar-day .tc-text {
+.wtc-day-panel .wtc-text {
   flex: 1;
   min-width: 0;
 }
 
-.task-calendar-day .tc-hours {
+.wtc-day-panel .wtc-hours {
   width: 4.5rem;
   text-align: right;
 }
 
-.task-calendar-day .tc-row.is-done .tc-text {
+.wtc-day-panel .wtc-row.is-done .wtc-text {
   text-decoration: line-through;
   color: var(--text-faint);
 }
 
-.task-calendar-day .tc-warning {
+.wtc-day-panel .wtc-warning {
   color: var(--text-warning);
   cursor: help;
 }
 
-.task-calendar-day .tc-add {
+.wtc-day-panel .wtc-add {
   align-self: flex-start;
 }
 
-.task-calendar-day .tc-notes {
+.wtc-day-panel .wtc-notes {
   color: var(--text-muted);
   font-size: var(--font-ui-smaller);
 }
 
-.task-calendar-day .tc-notes pre {
+.wtc-day-panel .wtc-notes pre {
   white-space: pre-wrap;
   margin: var(--size-4-1) 0 0;
 }
 
-.task-calendar-day .tc-row .tc-indent,
-.task-calendar-day .tc-row .tc-more {
+.wtc-day-panel .wtc-row .wtc-indent,
+.wtc-day-panel .wtc-row .wtc-more {
   flex: none;
 }
 
-.task-calendar-day .tc-row .tc-indent:disabled {
+.wtc-day-panel .wtc-row .wtc-indent:disabled {
   opacity: 0.3;
   cursor: default;
 }
 
 /* Modales : choix de jours, confirmation, diagnostic */
-.tc-pick-date .tc-pick-days {
+.wtc-pick-date .wtc-pick-days {
   display: flex;
   flex-direction: column;
   gap: var(--size-2-2);
   margin: var(--size-4-3) 0;
 }
 
-.tc-pick-date .tc-pick-day {
+.wtc-pick-date .wtc-pick-day {
   display: flex;
   align-items: center;
   gap: var(--size-4-2);
   justify-content: flex-start;
 }
 
-.tc-pick-date .tc-pick-free {
+.wtc-pick-date .wtc-pick-free {
   display: flex;
   align-items: center;
   gap: var(--size-4-2);
 }
 
-.tc-pick-footer {
+.wtc-pick-footer {
   display: flex;
   justify-content: flex-end;
   gap: var(--size-4-2);
   margin-top: var(--size-4-4);
 }
 
-.tc-diagnostic table {
+.wtc-diagnostic table {
   width: 100%;
   font-size: var(--font-ui-smaller);
 }
 
-.tc-diagnostic th,
-.tc-diagnostic td {
+.wtc-diagnostic th,
+.wtc-diagnostic td {
   text-align: left;
   padding: var(--size-2-2) var(--size-4-2);
   border-bottom: 1px solid var(--background-modifier-border);

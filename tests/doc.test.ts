@@ -66,6 +66,24 @@ describe('parseDoc', () => {
   });
 });
 
+describe('headerLang (langue des en-tetes du fichier)', () => {
+  it.each([
+    ['#### Semaine du 26/10/2026\nLundi\n- [ ] a\n', 'fr'],
+    ['## Week of 26/10/2026\nMonday\n- [ ] a\n', 'en'],
+    ['## Week 26/10/2026\n', 'en'],
+    ['Monday\n- [ ] a\n', 'en'],
+    ['Mardi\n- [ ] a\n', 'fr'],
+    ['- [ ] a\nnotes libres\n', null],
+    ['', null],
+  ])('%j -> %s', (text, expected) => {
+    expect(parseDoc(text).headerLang).toBe(expected);
+  });
+
+  it('le premier en-tete de semaine l\'emporte sur les jours', () => {
+    expect(parseDoc('## Week of 26/10/2026\nLundi\n').headerLang).toBe('en');
+  });
+});
+
 describe('taskParts', () => {
   it('separe texte et heures', () => {
     expect(taskParts(asTask(parseDoc('- [x] Corpus data 9h').lines[0]))).toEqual({

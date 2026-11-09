@@ -4,6 +4,8 @@ import { buildIndex } from '../src/calendar-index';
 import { buildDayModel } from '../src/calendar-model';
 import { parseDoc } from '../src/doc';
 
+import { setLang } from '../src/i18n';
+setLang('fr');
 const sample = readFileSync(new URL('./fixtures/sample.md', import.meta.url), 'utf8');
 const doc = parseDoc(sample);
 const index = buildIndex(doc);
@@ -59,5 +61,12 @@ describe('buildDayModel', () => {
     expect(model.rows).toEqual([]);
     expect(model.title).toBe('Samedi 31/10/2026');
     expect(model.summary).toEqual({ total: 0, done: 0, minutes: 0 });
+  });
+});
+
+describe('langue de l\'interface', () => {
+  it('titre du jour en anglais', () => {
+    expect(buildDayModel(index, '2026-10-27', 'en').title).toBe('Tuesday 27/10/2026 · 9h');
+    expect(buildDayModel(index, '2026-10-27', 'fr').title).toBe('Mardi 27/10/2026 · 9h');
   });
 });

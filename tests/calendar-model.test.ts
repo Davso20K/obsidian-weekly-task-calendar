@@ -4,6 +4,8 @@ import { buildIndex } from '../src/calendar-index';
 import { buildMonthModel, cellSummaryText } from '../src/calendar-model';
 import { parseDoc } from '../src/doc';
 
+import { setLang } from '../src/i18n';
+setLang('fr');
 const sample = readFileSync(new URL('./fixtures/sample.md', import.meta.url), 'utf8');
 const index = buildIndex(parseDoc(sample));
 const model = buildMonthModel(index, 2026, 9, '2026-10-27');
@@ -57,5 +59,12 @@ describe('cellSummaryText', () => {
   it('masque tout pour un jour sans tache et les heures quand il n\'y en a pas', () => {
     expect(cellSummaryText(cell('2026-10-31'))).toBe('');
     expect(cellSummaryText({ ...cell('2026-10-26'), minutes: 0 })).toBe('2/2 ✓');
+  });
+});
+
+describe('langue de l\'interface', () => {
+  it('libelle du mois en anglais', () => {
+    expect(buildMonthModel(index, 2026, 9, '2026-10-27', 'en').label).toBe('October 2026');
+    expect(buildMonthModel(index, 2026, 9, '2026-10-27', 'fr').label).toBe('octobre 2026');
   });
 });

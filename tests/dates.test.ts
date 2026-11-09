@@ -9,6 +9,8 @@ import {
   todayIso,
   weekdayFromName,
   weekdayIndex,
+  weekdayLang,
+  weekdayName,
 } from '../src/dates';
 
 describe('dates', () => {
@@ -52,6 +54,20 @@ describe('dates', () => {
     expect(weekdayFromName('Dimanche')).toBe(6);
     expect(weekdayFromName('Lundis')).toBeNull();
     expect(WEEKDAYS_FR[4]).toBe('Vendredi');
+  });
+
+  it('reconnait aussi les noms de jours anglais', () => {
+    expect(weekdayFromName('Monday')).toBe(0);
+    expect(weekdayFromName('FRIDAY')).toBe(4);
+    expect(weekdayFromName('sunday')).toBe(6);
+    expect(weekdayLang('Mardi')).toBe('fr');
+    expect(weekdayLang('tuesday')).toBe('en');
+    expect(weekdayLang('nimporte')).toBeNull();
+  });
+
+  it('nomme un jour dans la langue demandee', () => {
+    expect(weekdayName(2, 'fr')).toBe('Mercredi');
+    expect(weekdayName(2, 'en')).toBe('Wednesday');
   });
 
   it('todayIso utilise la date locale', () => {

@@ -1,5 +1,9 @@
 # Task Calendar — plugin Obsidian de planification des tâches
 
+> **Note (publication) :** le plugin a été renommé **Weekly Task Calendar** (id `weekly-task-calendar`), l'id
+> `task-calendar` étant déjà pris dans la liste officielle. L'interface est bilingue (EN/FR) et les en-têtes
+> acceptent le français et l'anglais ; ce document décrit la conception initiale.
+
 Date : 2026-11-09 · Statut : en attente de relecture
 
 ## 1. Objectif

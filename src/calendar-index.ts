@@ -1,6 +1,7 @@
 import { taskParts } from './doc';
 import type { Doc } from './doc';
-import { addDays, mondayOf, parseFrDate, weekdayFromName, weekdayIndex } from './dates';
+import { addDays, mondayOf, weekdayIndex } from './dates';
+import { parseDayHeader, parseWeekHeader } from './headers';
 
 export interface TaskView {
   index: number;
@@ -43,7 +44,8 @@ export interface Diagnostic {
     | 'duplicate-day'
     | 'ambiguous-hours'
     | 'unplaced-block';
-  message: string;
+  /** Valeurs a inserer dans le message traduit (cle `diag.msg.<kind>`) ; pas de texte ici. */
+  params: Record<string, string>;
 }
 
 export interface CalendarIndex {
@@ -68,24 +70,6 @@ interface RawWeek {
   duplicateDays: RawDay[];
 }
 
-const WEEK_HEADER = /^\s*#{1,6}\s*Semaine du\b(.*)$/i;
-const DAY_HEADER =
-  /^\s*(?:#{1,6}\s*)?([A-Za-zÀ-ÿ]+)\s*(?:(\d{1,3}\/\d{1,2}\/\d{4}))?\s*:?\s*$/;
-
-function parseDayHeader(raw: string): { weekday: number; typedDate: string | null } | null {
-  const match = DAY_HEADER.exec(raw);
-  if (!match) return null;
-  const weekday = weekdayFromName(match[1]);
-  if (weekday === null) return null;
-  return { weekday, typedDate: match[2] ? parseFrDate(match[2]) : null };
-}
-
-function parseWeekHeaderDate(raw: string): string | null {
-  const match = WEEK_HEADER.exec(raw);
-  const token = /\d{1,3}\/\d{1,2}\/\d{4}/.exec(match?.[1] ?? '');
-  return token ? parseFrDate(token[0]) : null;
-}
-
 /** Passe 1 : reperer en-tetes de semaine et de jour, et leurs plages. */
 function scanStructure(doc: Doc): { weeks: RawWeek[]; orphanDays: RawDay[] } {
   const weeks: RawWeek[] = [];
@@ -95,13 +79,14 @@ function scanStructure(doc: Doc): { weeks: RawWeek[]; orphanDays: RawDay[] } {
 
   doc.lines.forEach((line, index) => {
     if (line.kind !== 'other') return;
-    if (WEEK_HEADER.test(line.raw)) {
+    const weekHeader = parseWeekHeader(line.raw);
+    if (weekHeader) {
       if (currentDay) currentDay.endIndex = index;
       if (currentWeek) currentWeek.endIndex = index;
       currentWeek = {
         headerIndex: index,
         endIndex: doc.lines.length,
-        headerDate: parseWeekHeaderDate(line.raw),
+        headerDate: weekHeader.date,
         days: [],
         duplicateDays: [],
       };
@@ -111,7 +96,12 @@ function scanStructure(doc: Doc): { weeks: RawWeek[]; orphanDays: RawDay[] } {
     }
     const header = parseDayHeader(line.raw);
     if (!header) return;
-    const candidate: RawDay = { headerIndex: index, endIndex: doc.lines.length, ...header };
+    const candidate: RawDay = {
+      headerIndex: index,
+      endIndex: doc.lines.length,
+      weekday: header.weekday,
+      typedDate: header.typedDate,
+    };
     // Un nom de jour deja ouvert dans la semaine (ex. "Mardi" seul dans les notes de fin de fichier)
     // n'ouvre pas de nouveau bloc : le premier en-tete fait foi, la ligne reste du texte libre.
     if (currentWeek?.days.some((day) => day.weekday === header.weekday)) {
@@ -176,7 +166,7 @@ export function buildIndex(doc: Doc): CalendarIndex {
     diagnostics.push({
       line: day.headerIndex + 1,
       kind: 'unplaced-block',
-      message: 'Jour situe avant toute en-tete de semaine : ignore par le calendrier.',
+      params: { reason: 'day' },
     });
   }
 
@@ -186,7 +176,7 @@ export function buildIndex(doc: Doc): CalendarIndex {
       diagnostics.push({
         line: week.headerIndex + 1,
         kind: 'unplaced-block',
-        message: 'Date de semaine introuvable : cette semaine est ignoree par le calendrier.',
+        params: { reason: 'week' },
       });
       continue;
     }
@@ -194,14 +184,14 @@ export function buildIndex(doc: Doc): CalendarIndex {
       diagnostics.push({
         line: week.headerIndex + 1,
         kind: 'week-header-not-monday',
-        message: `L'en-tete n'est pas un lundi ; semaine placee au lundi ${monday}.`,
+        params: { date: monday },
       });
     }
     if (seenMondays.has(monday)) {
       diagnostics.push({
         line: week.headerIndex + 1,
         kind: 'duplicate-week',
-        message: `Semaine du ${monday} presente plusieurs fois : les jours sont fusionnes.`,
+        params: { date: monday },
       });
     }
     seenMondays.add(monday);
@@ -211,7 +201,7 @@ export function buildIndex(doc: Doc): CalendarIndex {
       diagnostics.push({
         line: duplicate.headerIndex + 1,
         kind: 'duplicate-day',
-        message: `Jour ${addDays(monday, duplicate.weekday)} répété dans la semaine : cette ligne est traitée comme du texte libre.`,
+        params: { date: addDays(monday, duplicate.weekday) },
       });
     }
 
@@ -221,7 +211,7 @@ export function buildIndex(doc: Doc): CalendarIndex {
         diagnostics.push({
           line: rawDay.headerIndex + 1,
           kind: 'day-date-mismatch',
-          message: `Date saisie ${rawDay.typedDate} differente de la date deduite ${date}.`,
+          params: { typed: rawDay.typedDate, date },
         });
       }
       const block: DayBlock = {
@@ -244,7 +234,7 @@ export function buildIndex(doc: Doc): CalendarIndex {
         diagnostics.push({
           line: task.index + 1,
           kind: 'ambiguous-hours',
-          message: 'Heures non reconnues : laissees dans le texte, exclues des totaux.',
+          params: {},
         });
       }
     }

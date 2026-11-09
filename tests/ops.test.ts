@@ -97,11 +97,34 @@ describe('addTask', () => {
     );
   });
 
-  it('cree semaine + jour + tache dans un fichier vide', () => {
+  it('cree semaine + jour + tache dans un fichier vide (en-tetes francais)', () => {
     const result = serializeDoc(
-      addTask(parseDoc(''), '2026-10-26', { text: 'Premiere tache', minutes: 180 }),
+      addTask({ ...parseDoc(''), headerLang: 'fr' }, '2026-10-26', { text: 'Premiere tache', minutes: 180 }),
     );
     expect(result).toBe('#### Semaine du 26/10/2026\n\nLundi 26/10/2026\n- [ ] Premiere tache 3h\n');
+  });
+
+  it('cree semaine + jour + tache dans un fichier vide (en-tetes anglais, defaut)', () => {
+    const result = serializeDoc(addTask(parseDoc(''), '2026-10-26', { text: 'First task', minutes: 180 }));
+    expect(result).toBe('#### Week of 26/10/2026\n\nMonday 26/10/2026\n- [ ] First task 3h\n');
+  });
+
+  it('un fichier anglais recoit des en-tetes anglais (nouveau jour et nouvelle semaine)', () => {
+    const doc = parseDoc('#### Week of 26/10/2026\n\nMonday 26/10/2026\n- [ ] a\n');
+    const day = serializeDoc(addTask(doc, '2026-10-27', { text: 'b', minutes: null }));
+    expect(day).toContain('Tuesday 27/10/2026\n- [ ] b');
+    const week = serializeDoc(addTask(doc, '2026-11-02', { text: 'c', minutes: null }));
+    expect(week).toContain('#### Week of 02/11/2026');
+    expect(week).toContain('Monday 02/11/2026\n- [ ] c');
+    expect(week).not.toMatch(/Semaine|Lundi/);
+  });
+
+  it('la langue des en-tetes est conservee par toutes les operations', () => {
+    const doc = parseDoc('#### Week of 26/10/2026\nMonday\n- [ ] a\n');
+    const ref = refOf(taskOf(doc, '2026-10-26', 'a'));
+    expect(updateTask(doc, ref, { done: true }).headerLang).toBe('en');
+    expect(removeTask(doc, ref).headerLang).toBe('en');
+    expect(copyTask(doc, ref, ['2026-10-27']).headerLang).toBe('en');
   });
 
   it('en CRLF, toutes les lignes creees finissent par CRLF', () => {

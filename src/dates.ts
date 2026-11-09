@@ -1,5 +1,6 @@
 // Dates ISO (YYYY-MM-DD). Toute l'arithmetique passe par Date.UTC pour eviter
 // les decalages de fuseau et d'heure d'ete.
+import type { Lang } from './i18n';
 
 export const WEEKDAYS_FR: readonly string[] = [
   'Lundi',
@@ -78,11 +79,38 @@ function normalizeName(name: string): string {
     .toLowerCase();
 }
 
-const NORMALIZED_WEEKDAYS = WEEKDAYS_FR.map(normalizeName);
+export const WEEKDAYS_EN: readonly string[] = [
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+  'Sunday',
+];
 
+const WEEKDAYS: Record<Lang, readonly string[]> = { fr: WEEKDAYS_FR, en: WEEKDAYS_EN };
+const NORMALIZED_WEEKDAYS: Record<Lang, string[]> = {
+  fr: WEEKDAYS_FR.map(normalizeName),
+  en: WEEKDAYS_EN.map(normalizeName),
+};
+
+export function weekdayName(index: number, lang: Lang): string {
+  return WEEKDAYS[lang][index];
+}
+
+/** Langue (fr/en) d'un nom de jour, ou null si ce n'en est pas un. */
+export function weekdayLang(name: string): Lang | null {
+  const normalized = normalizeName(name);
+  if (NORMALIZED_WEEKDAYS.fr.includes(normalized)) return 'fr';
+  if (NORMALIZED_WEEKDAYS.en.includes(normalized)) return 'en';
+  return null;
+}
+
+/** Lundi = 0 ... Dimanche = 6, pour un nom francais ou anglais (casse et accents ignores). */
 export function weekdayFromName(name: string): number | null {
-  const index = NORMALIZED_WEEKDAYS.indexOf(normalizeName(name));
-  return index === -1 ? null : index;
+  const lang = weekdayLang(name);
+  return lang === null ? null : NORMALIZED_WEEKDAYS[lang].indexOf(normalizeName(name));
 }
 
 /** Semaines de 7 jours ISO (lundi en premier) couvrant tout le mois (month0 : 0-11). */

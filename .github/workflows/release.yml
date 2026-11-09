@@ -1,0 +1,40 @@
+name: Release
+
+# Pousser un tag identique a la version du manifeste (ex. 0.1.0, sans "v") construit le plugin et
+# publie la release GitHub avec main.js, manifest.json et styles.css, comme l'exige Obsidian.
+on:
+  push:
+    tags:
+      - '*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+      - name: Le tag doit etre la version du manifeste
+        run: |
+          version="$(node -p "require('./manifest.json').version")"
+          if [ "$GITHUB_REF_NAME" != "$version" ]; then
+            echo "Le tag $GITHUB_REF_NAME ne correspond pas a manifest.json ($version)" >&2
+            exit 1
+          fi
+
+      - name: Creer la release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release create "$GITHUB_REF_NAME" main.js manifest.json styles.css --title "$GITHUB_REF_NAME" --generate-notes

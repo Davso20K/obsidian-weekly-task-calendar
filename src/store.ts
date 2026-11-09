@@ -5,6 +5,8 @@ import { buildIndex } from './calendar-index';
 import type { CalendarIndex } from './calendar-index';
 import { parseDoc } from './doc';
 import type { Doc } from './doc';
+import { t } from './i18n';
+import type { Lang } from './i18n';
 import { StaleLineError } from './ops';
 
 /** Acces au fichier de taches : lecture, ecriture atomique, rechargement sur modification externe. */
@@ -19,6 +21,8 @@ export class TaskStore {
   constructor(
     private readonly app: App,
     private readonly getPath: () => string,
+    /** Langue des en-tetes a ecrire, a partir de celle detectee dans le fichier (ou null). */
+    private readonly resolveHeaderLang: (detected: Lang | null) => Lang,
   ) {}
 
   /** Recharge le modele quand le fichier cible est cree, modifie, renomme ou supprime. */
@@ -70,14 +74,14 @@ export class TaskStore {
   async edit(edit: (doc: Doc) => Doc): Promise<boolean> {
     const file = this.file();
     if (!file) {
-      new Notice('Task Calendar : fichier de tâches introuvable.');
+      new Notice(t('store.noFile'));
       return false;
     }
     try {
-      await this.app.vault.process(file, (text) => applyEdit(text, edit));
+      await this.app.vault.process(file, (text) => applyEdit(text, edit, this.resolveHeaderLang));
     } catch (error) {
       if (error instanceof StaleLineError) {
-        new Notice('Task Calendar : le fichier a changé, action annulée. Vue rechargée.');
+        new Notice(t('store.stale'));
         await this.load();
         return false;
       }

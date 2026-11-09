@@ -1,23 +1,10 @@
 import { daySummary, weekMinutes } from './calendar-index';
 import type { CalendarIndex } from './calendar-index';
-import { WEEKDAYS_FR, formatFrDate, monthGrid, weekdayIndex } from './dates';
+import { formatFrDate, monthGrid, weekdayIndex, weekdayName } from './dates';
 import { formatHours } from './hours';
+import { getLang, monthName } from './i18n';
+import type { Lang } from './i18n';
 import type { LineRef } from './ops';
-
-export const MONTHS_FR: readonly string[] = [
-  'janvier',
-  'février',
-  'mars',
-  'avril',
-  'mai',
-  'juin',
-  'juillet',
-  'août',
-  'septembre',
-  'octobre',
-  'novembre',
-  'décembre',
-];
 
 export interface CellModel {
   date: string;
@@ -39,6 +26,7 @@ export function buildMonthModel(
   year: number,
   month0: number,
   todayIso: string,
+  lang: Lang = getLang(),
 ): MonthModel {
   const monthPrefix = `${String(year).padStart(4, '0')}-${String(month0 + 1).padStart(2, '0')}-`;
   const weeks = monthGrid(year, month0).map((dates) => ({
@@ -52,7 +40,7 @@ export function buildMonthModel(
       ...daySummary(index.days.get(date)),
     })),
   }));
-  return { label: `${MONTHS_FR[month0]} ${year}`, weeks };
+  return { label: `${monthName(month0, lang)} ${year}`, weeks };
 }
 
 /** Ex. "2/3 ✓ · 9h" ; vide s'il n'y a aucune tache ; sans heures si aucune n'est renseignee. */
@@ -80,10 +68,10 @@ export interface DayModel {
 }
 
 /** Ce que le panneau du jour affiche : une ligne par tache, et les notes libres en lecture seule. */
-export function buildDayModel(index: CalendarIndex, date: string): DayModel {
+export function buildDayModel(index: CalendarIndex, date: string, lang: Lang = getLang()): DayModel {
   const day = index.days.get(date);
   const summary = daySummary(day);
-  const base = `${WEEKDAYS_FR[weekdayIndex(date)]} ${formatFrDate(date)}`;
+  const base = `${weekdayName(weekdayIndex(date), lang)} ${formatFrDate(date)}`;
   return {
     title: summary.minutes > 0 ? `${base} · ${formatHours(summary.minutes)}` : base,
     summary,

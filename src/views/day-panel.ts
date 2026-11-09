@@ -5,12 +5,13 @@ import type { DayRowModel } from '../calendar-model';
 import { mondayOf } from '../dates';
 import type { Doc } from '../doc';
 import { parseHoursInput } from '../hours';
+import { t } from '../i18n';
 import type TaskCalendarPlugin from '../main';
 import { addTask, copyTask, moveTask, removeTask, setDepth, updateTask } from '../ops';
 import { ConfirmModal } from './confirm-modal';
 import { PickDateModal } from './pick-date-modal';
 
-export const DAY_VIEW = 'task-calendar-day';
+export const DAY_VIEW = 'weekly-task-calendar-day';
 
 type Field = 'text' | 'hours' | 'done';
 interface FocusTarget {
@@ -21,6 +22,11 @@ interface FocusTarget {
 }
 
 const ZERO_HOURS = /^0+(?:[.,]0+)?\s*(?:h|min)?$/i;
+
+/** `instanceof` ne fonctionne pas entre fenetres (popout) : on teste la balise. */
+function asInput(element: Element | null): HTMLInputElement | null {
+  return element && element.tagName === 'INPUT' ? (element as HTMLInputElement) : null;
+}
 
 export class DayPanel extends ItemView {
   private pendingFocus: FocusTarget | null = null;
@@ -42,7 +48,7 @@ export class DayPanel extends ItemView {
   }
 
   getDisplayText(): string {
-    return 'Tâches du jour';
+    return t('day.title');
   }
 
   getIcon(): string {
@@ -50,23 +56,24 @@ export class DayPanel extends ItemView {
   }
 
   async onOpen(): Promise<void> {
-    this.contentEl.addClass('task-calendar-day');
+    this.contentEl.addClass('wtc-day-panel');
     this.render();
     this.register(this.plugin.onSelect(() => this.render()));
     this.register(this.plugin.store.onChange(() => this.render()));
     // Un rendu differe (saisie en cours, clic en cours) est rejoue des que c'est possible.
-    this.registerDomEvent(this.contentEl, 'focusout', () => window.setTimeout(() => this.flushDeferred(), 0));
+    const { doc, win } = this.contentEl;
+    this.registerDomEvent(this.contentEl, 'focusout', () => win.setTimeout(() => this.flushDeferred(), 0));
     this.registerDomEvent(this.contentEl, 'pointerdown', () => {
       this.pointerDown = true;
     });
     const release = (): void => {
-      window.setTimeout(() => {
+      win.setTimeout(() => {
         this.pointerDown = false;
         this.flushDeferred();
       }, 0);
     };
-    this.registerDomEvent(document, 'pointerup', release);
-    this.registerDomEvent(document, 'pointercancel', release);
+    this.registerDomEvent(doc, 'pointerup', release);
+    this.registerDomEvent(doc, 'pointercancel', release);
   }
 
   private flushDeferred(): void {
@@ -78,9 +85,9 @@ export class DayPanel extends ItemView {
 
   /** Vrai si l'utilisateur est en train de saisir dans un champ du panneau (valeur non validee). */
   private isTyping(): boolean {
-    const active = document.activeElement;
+    const active = asInput(this.contentEl.doc.activeElement);
     return (
-      active instanceof HTMLInputElement &&
+      active !== null &&
       this.contentEl.contains(active) &&
       active.type === 'text' &&
       active.value !== active.dataset.initial
@@ -88,8 +95,8 @@ export class DayPanel extends ItemView {
   }
 
   private captureFocus(): FocusTarget | null {
-    const active = document.activeElement;
-    if (!(active instanceof HTMLInputElement) || !this.contentEl.contains(active)) return null;
+    const active = asInput(this.contentEl.doc.activeElement);
+    if (!active || !this.contentEl.contains(active)) return null;
     const { row, field } = active.dataset;
     if (row === undefined || field === undefined) return null;
     return {
@@ -123,10 +130,10 @@ export class DayPanel extends ItemView {
         await this.plugin.store.edit(edit);
       } catch (error) {
         if (error instanceof Error && error.message === 'no-parent') {
-          new Notice("Impossible d'indenter : il faut une tâche juste au-dessus.");
+          new Notice(t('day.noParent'));
         } else {
-          console.error('Task Calendar : opération impossible', error);
-          new Notice('Task Calendar : opération impossible (voir la console).');
+          console.error('Weekly Task Calendar: operation failed', error);
+          new Notice(t('day.opFailed'));
         }
       } finally {
         this.pendingFocus = null;
@@ -152,7 +159,7 @@ export class DayPanel extends ItemView {
   private pickMove(row: DayRowModel): void {
     const date = this.plugin.selectedDate;
     new PickDateModal(this.app, {
-      title: 'Reporter la tâche',
+      title: t('pick.moveTitle'),
       multiple: false,
       weekMonday: mondayOf(date),
       fromDate: date,
@@ -163,7 +170,7 @@ export class DayPanel extends ItemView {
   private pickCopy(row: DayRowModel): void {
     const date = this.plugin.selectedDate;
     new PickDateModal(this.app, {
-      title: 'Copier la tâche vers…',
+      title: t('pick.copyTitle'),
       multiple: true,
       weekMonday: mondayOf(date),
       fromDate: date,
@@ -177,21 +184,16 @@ export class DayPanel extends ItemView {
       doRemove();
       return;
     }
-    new ConfirmModal(
-      this.app,
-      'Cette tâche a des sous-tâches : elles seront supprimées avec elle.',
-      'Supprimer',
-      doRemove,
-    ).open();
+    new ConfirmModal(this.app, t('day.confirmDelete'), t('day.menuDelete'), doRemove).open();
   }
 
   private openMenu(event: MouseEvent, row: DayRowModel, hasChildren: boolean): void {
     const menu = new Menu();
-    menu.addItem((item) => item.setTitle('Reporter…').setIcon('arrow-right').onClick(() => this.pickMove(row)));
-    menu.addItem((item) => item.setTitle('Copier vers…').setIcon('copy').onClick(() => this.pickCopy(row)));
+    menu.addItem((item) => item.setTitle(t('day.menuMove')).setIcon('arrow-right').onClick(() => this.pickMove(row)));
+    menu.addItem((item) => item.setTitle(t('day.menuCopy')).setIcon('copy').onClick(() => this.pickCopy(row)));
     menu.addSeparator();
     menu.addItem((item) =>
-      item.setTitle('Supprimer').setIcon('trash-2').onClick(() => this.remove(row, hasChildren)),
+      item.setTitle(t('day.menuDelete')).setIcon('trash-2').onClick(() => this.remove(row, hasChildren)),
     );
     menu.showAtMouseEvent(event);
   }
@@ -216,35 +218,35 @@ export class DayPanel extends ItemView {
     root.empty();
 
     if (!store.fileExists) {
-      root.createEl('p', { text: `Fichier de tâches introuvable : ${store.path()}` });
+      root.createEl('p', { text: t('calendar.fileMissing', { path: store.path() }) });
       return;
     }
 
     const model = buildDayModel(store.index, this.plugin.selectedDate);
-    root.createEl('h3', { text: model.title, cls: 'tc-day-title' });
+    root.createEl('h3', { text: model.title, cls: 'wtc-day-title' });
     if (model.summary.total > 0) {
       root.createDiv({
-        text: `${model.summary.done}/${model.summary.total} faites`,
-        cls: 'tc-day-summary',
+        text: t('day.done', { done: model.summary.done, total: model.summary.total }),
+        cls: 'wtc-day-summary',
       });
     }
 
-    const list = root.createDiv({ cls: 'tc-rows' });
+    const list = root.createDiv({ cls: 'wtc-rows' });
     if (model.rows.length === 0) {
-      list.createDiv({ text: 'Aucune tâche ce jour.', cls: 'tc-no-task' });
+      list.createDiv({ text: t('day.none'), cls: 'wtc-no-task' });
     }
     model.rows.forEach((row, position) => {
       const hasChildren = (model.rows[position + 1]?.depth ?? 0) > row.depth;
       this.renderRow(list, row, position, position === model.rows.length - 1, hasChildren);
     });
 
-    root.createEl('button', { text: '+ Ajouter une tâche', cls: 'tc-add' }).addEventListener('click', () => {
+    root.createEl('button', { text: t('day.add'), cls: 'wtc-add' }).addEventListener('click', () => {
       void this.addNew();
     });
 
     if (model.freeLines.length > 0) {
-      const notes = root.createEl('details', { cls: 'tc-notes' });
-      notes.createEl('summary', { text: `Notes du jour (${model.freeLines.length} lignes, lecture seule)` });
+      const notes = root.createEl('details', { cls: 'wtc-notes' });
+      notes.createEl('summary', { text: t('day.notes', { count: model.freeLines.length }) });
       notes.createEl('pre', { text: model.freeLines.join('\n') });
     }
 
@@ -258,7 +260,7 @@ export class DayPanel extends ItemView {
     isLast: boolean,
     hasChildren: boolean,
   ): void {
-    const rowEl = list.createDiv({ cls: 'tc-row' });
+    const rowEl = list.createDiv({ cls: 'wtc-row' });
     rowEl.style.paddingLeft = `${row.depth * 1.5}rem`;
     if (row.done) rowEl.addClass('is-done');
     const key = String(row.ref.index);
@@ -275,33 +277,33 @@ export class DayPanel extends ItemView {
 
     const text = rowEl.createEl('input', {
       type: 'text',
-      cls: 'tc-text',
+      cls: 'wtc-text',
       value: row.text,
-      placeholder: 'Tâche…',
+      placeholder: t('day.taskPlaceholder'),
       attr: { 'data-row': key, 'data-field': 'text' },
     });
     text.dataset.initial = row.text;
 
     const hours = rowEl.createEl('input', {
       type: 'text',
-      cls: 'tc-hours',
+      cls: 'wtc-hours',
       value: row.hoursText,
       placeholder: 'h',
-      attr: { 'data-row': key, 'data-field': 'hours', 'aria-label': 'Heures (ex. 2h30)' },
+      attr: { 'data-row': key, 'data-field': 'hours', 'aria-label': t('day.hoursLabel') },
     });
     hours.dataset.initial = row.hoursText;
 
     if (row.hoursUnrecognized) {
       rowEl.createSpan({
         text: '⚠',
-        cls: 'tc-warning',
-        attr: { title: 'Heures non reconnues : laissées dans le texte, exclues des totaux.' },
+        cls: 'wtc-warning',
+        attr: { title: t('day.hoursUnrecognized') },
       });
     }
 
     const indent = rowEl.createEl('button', {
-      cls: 'clickable-icon tc-indent',
-      attr: { 'aria-label': row.depth === 0 ? 'Mettre en sous-tâche' : 'Remonter au premier niveau' },
+      cls: 'clickable-icon wtc-indent',
+      attr: { 'aria-label': row.depth === 0 ? t('day.indent') : t('day.outdent') },
     });
     setIcon(indent, row.depth === 0 ? 'indent-increase' : 'indent-decrease');
     if (row.depth === 0 && position === 0) indent.disabled = true;
@@ -311,8 +313,8 @@ export class DayPanel extends ItemView {
 
     const more = rowEl.createEl('button', {
       text: '⋯',
-      cls: 'clickable-icon tc-more',
-      attr: { 'aria-label': "Plus d'actions" },
+      cls: 'clickable-icon wtc-more',
+      attr: { 'aria-label': t('day.more') },
     });
     more.addEventListener('click', (event) => this.openMenu(event, row, hasChildren));
 
@@ -334,7 +336,7 @@ export class DayPanel extends ItemView {
       if (raw !== '' && !ZERO_HOURS.test(raw)) {
         minutes = parseHoursInput(raw);
         if (minutes === null) {
-          new Notice('Heures invalides. Exemples : 2h30, 1,5, 45min.');
+          new Notice(t('day.invalidHours'));
           hours.value = row.hoursText;
           hours.dataset.initial = row.hoursText;
           return;

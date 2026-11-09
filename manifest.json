@@ -1,9 +1,10 @@
 {
-  "id": "task-calendar",
-  "name": "Task Calendar",
+  "id": "weekly-task-calendar",
+  "name": "Weekly Task Calendar",
   "version": "0.1.0",
   "minAppVersion": "1.5.0",
-  "description": "Grand calendrier et panneau du jour pour remplir vos taches directement dans votre fichier Markdown.",
-  "author": "fafomale",
+  "description": "Fill your weekly tasks and hours from a calendar: click a day, and everything is written into your Markdown task file.",
+  "author": "Davso20K",
+  "authorUrl": "https://github.com/Davso20K",
   "isDesktopOnly": false
 }

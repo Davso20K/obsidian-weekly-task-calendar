@@ -1,13 +1,12 @@
 import { ItemView, setIcon } from 'obsidian';
 import type { WorkspaceLeaf } from 'obsidian';
 import { buildMonthModel, cellSummaryText } from '../calendar-model';
-import { todayIso } from '../dates';
+import { todayIso, weekdayName } from '../dates';
 import { formatHours } from '../hours';
+import { getLang, t } from '../i18n';
 import type TaskCalendarPlugin from '../main';
 
-export const CALENDAR_VIEW = 'task-calendar-view';
-
-const WEEKDAY_LABELS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+export const CALENDAR_VIEW = 'weekly-task-calendar-view';
 
 export class CalendarView extends ItemView {
   private year: number;
@@ -28,7 +27,7 @@ export class CalendarView extends ItemView {
   }
 
   getDisplayText(): string {
-    return 'Calendrier des tâches';
+    return t('calendar.title');
   }
 
   getIcon(): string {
@@ -60,47 +59,48 @@ export class CalendarView extends ItemView {
     const { store } = this.plugin;
     const root = this.contentEl;
     root.empty();
-    root.addClass('task-calendar');
+    root.addClass('wtc-calendar');
 
     if (!store.fileExists) {
-      const empty = root.createDiv({ cls: 'tc-empty' });
-      empty.createEl('p', { text: `Fichier de tâches introuvable : ${store.path()}` });
+      const empty = root.createDiv({ cls: 'wtc-empty' });
+      empty.createEl('p', { text: t('calendar.fileMissing', { path: store.path() }) });
       empty
-        .createEl('button', { text: 'Créer le fichier', cls: 'mod-cta' })
+        .createEl('button', { text: t('calendar.createFile'), cls: 'mod-cta' })
         .addEventListener('click', () => void store.createFile());
       return;
     }
 
     const model = buildMonthModel(store.index, this.year, this.month0, todayIso());
 
-    const header = root.createDiv({ cls: 'tc-header' });
-    const previous = header.createEl('button', { cls: 'clickable-icon', attr: { 'aria-label': 'Mois précédent' } });
+    const header = root.createDiv({ cls: 'wtc-header' });
+    const previous = header.createEl('button', { cls: 'clickable-icon', attr: { 'aria-label': t('calendar.prevMonth') } });
     setIcon(previous, 'chevron-left');
     previous.addEventListener('click', () => this.shiftMonth(-1));
-    header.createEl('h2', { text: model.label, cls: 'tc-title' });
-    const next = header.createEl('button', { cls: 'clickable-icon', attr: { 'aria-label': 'Mois suivant' } });
+    header.createEl('h2', { text: model.label, cls: 'wtc-title' });
+    const next = header.createEl('button', { cls: 'clickable-icon', attr: { 'aria-label': t('calendar.nextMonth') } });
     setIcon(next, 'chevron-right');
     next.addEventListener('click', () => this.shiftMonth(1));
     header
-      .createEl('button', { text: "Aujourd'hui", cls: 'tc-today-button' })
+      .createEl('button', { text: t('calendar.today'), cls: 'wtc-today-button' })
       .addEventListener('click', () => this.goToToday());
 
-    const grid = root.createDiv({ cls: 'tc-grid' });
-    for (const label of [...WEEKDAY_LABELS, 'Total']) {
-      grid.createDiv({ text: label, cls: 'tc-weekday' });
+    const grid = root.createDiv({ cls: 'wtc-grid' });
+    const weekdayLabels = Array.from({ length: 7 }, (_, i) => weekdayName(i, getLang()).slice(0, 3));
+    for (const label of [...weekdayLabels, t('calendar.total')]) {
+      grid.createDiv({ text: label, cls: 'wtc-weekday' });
     }
 
     for (const week of model.weeks) {
       week.cells.forEach((cellModel, column) => {
-        const cell = grid.createDiv({ cls: 'tc-cell', attr: { role: 'button', tabindex: '0' } });
+        const cell = grid.createDiv({ cls: 'wtc-cell', attr: { role: 'button', tabindex: '0' } });
         if (!cellModel.inMonth) cell.addClass('is-outside');
         if (column >= 5) cell.addClass('is-weekend');
         if (cellModel.isToday) cell.addClass('is-today');
         if (cellModel.date === this.plugin.selectedDate) cell.addClass('is-selected');
         if (cellModel.total > 0 && cellModel.done === cellModel.total) cell.addClass('is-complete');
 
-        cell.createDiv({ text: String(cellModel.dayOfMonth), cls: 'tc-day-number' });
-        cell.createDiv({ text: cellSummaryText(cellModel), cls: 'tc-summary' });
+        cell.createDiv({ text: String(cellModel.dayOfMonth), cls: 'wtc-day-number' });
+        cell.createDiv({ text: cellSummaryText(cellModel), cls: 'wtc-summary' });
 
         const choose = (): void => {
           if (!cellModel.inMonth) {
@@ -121,7 +121,7 @@ export class CalendarView extends ItemView {
       });
       grid.createDiv({
         text: week.minutes > 0 ? formatHours(week.minutes) : '',
-        cls: 'tc-week-total',
+        cls: 'wtc-week-total',
       });
     }
   }

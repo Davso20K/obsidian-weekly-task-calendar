@@ -27,6 +27,35 @@ describe('resolution des semaines', () => {
   });
 });
 
+describe('fichier en anglais', () => {
+  it('reconnait "Week of" et les noms de jours anglais', () => {
+    const doc = buildIndex(
+      parseDoc('## Week of 26/10/2026\n\nMonday 26/10/2026\n- [ ] a 2h\nTuesday\n- [x] b\n'),
+    );
+    expect(doc.weeks.map((w) => w.monday)).toEqual(['2026-10-26']);
+    expect(doc.days.get('2026-10-26')?.tasks.map((t) => t.text)).toEqual(['a']);
+    expect(doc.days.get('2026-10-27')?.tasks.map((t) => t.done)).toEqual([true]);
+  });
+
+  it('accepte aussi "Week" tout court', () => {
+    const doc = buildIndex(parseDoc('### Week 26/10/2026\nFriday\n- [ ] a\n'));
+    expect(doc.days.has('2026-10-30')).toBe(true);
+  });
+
+  it('un fichier mixte francais/anglais fonctionne', () => {
+    const doc = buildIndex(parseDoc('#### Semaine du 26/10/2026\nMonday\n- [ ] a\nMardi\n- [ ] b\n'));
+    expect(doc.days.get('2026-10-26')?.tasks).toHaveLength(1);
+    expect(doc.days.get('2026-10-27')?.tasks).toHaveLength(1);
+  });
+
+  it('les diagnostics portent des parametres, pas du texte francais', () => {
+    const doc = buildIndex(parseDoc('Lundi\n- [ ] a\n'));
+    const diagnostic = doc.diagnostics.find((d) => d.kind === 'unplaced-block');
+    expect(diagnostic?.params).toEqual({ reason: 'day' });
+    expect(diagnostic).not.toHaveProperty('message');
+  });
+});
+
 describe('placement des jours par position', () => {
   it('place un jour par nom + debut de semaine, meme avec une date erronee', () => {
     const wednesday = index.days.get('2026-07-15');

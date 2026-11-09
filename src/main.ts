@@ -1,5 +1,7 @@
-import { Notice, Plugin, normalizePath } from 'obsidian';
+import { Notice, Plugin, moment, normalizePath } from 'obsidian';
 import { todayIso } from './dates';
+import { setLang, t } from './i18n';
+import type { Lang } from './i18n';
 import { DEFAULT_SETTINGS, TaskCalendarSettingTab } from './settings';
 import type { TaskCalendarSettings } from './settings';
 import { TaskStore } from './store';
@@ -7,28 +9,40 @@ import { CALENDAR_VIEW, CalendarView } from './views/calendar-view';
 import { DAY_VIEW, DayPanel } from './views/day-panel';
 import { DiagnosticModal } from './views/diagnostic-modal';
 
+/** Langue de l'interface d'Obsidian : francais si elle commence par "fr", anglais sinon. */
+function detectUiLang(): Lang {
+  return moment.locale().toLowerCase().startsWith('fr') ? 'fr' : 'en';
+}
+
 export default class TaskCalendarPlugin extends Plugin {
   settings: TaskCalendarSettings = { ...DEFAULT_SETTINGS };
   store!: TaskStore;
   selectedDate = todayIso();
+  private uiLang: Lang = 'en';
 
   private selectListeners = new Set<(date: string) => void>();
 
   async onload(): Promise<void> {
     await this.loadSettings();
-    this.store = new TaskStore(this.app, () => this.settings.filePath);
+    this.uiLang = detectUiLang();
+    setLang(this.uiLang);
+    this.store = new TaskStore(
+      this.app,
+      () => this.settings.filePath,
+      (detected) => (this.settings.headerLang === 'auto' ? (detected ?? this.uiLang) : this.settings.headerLang),
+    );
     this.store.attach(this);
 
     this.registerView(CALENDAR_VIEW, (leaf) => new CalendarView(leaf, this));
     this.registerView(DAY_VIEW, (leaf) => new DayPanel(leaf, this));
     this.addSettingTab(new TaskCalendarSettingTab(this.app, this));
 
-    this.addRibbonIcon('calendar-days', 'Ouvrir le calendrier des tâches', () => {
+    this.addRibbonIcon('calendar-days', t('main.ribbon'), () => {
       void this.openCalendar();
     });
     this.addCommand({
       id: 'open-calendar',
-      name: 'Ouvrir le calendrier des tâches',
+      name: t('main.cmdOpen'),
       callback: () => {
         void this.openCalendar();
       },
@@ -36,7 +50,7 @@ export default class TaskCalendarPlugin extends Plugin {
 
     this.addCommand({
       id: 'diagnostic',
-      name: 'Diagnostic du fichier de tâches',
+      name: t('main.cmdDiagnostic'),
       callback: () => {
         new DiagnosticModal(this.app, this.store.path(), this.store.index.diagnostics).open();
       },
@@ -98,10 +112,10 @@ export default class TaskCalendarPlugin extends Plugin {
       await adapter.write(normalizePath(`${dir}/${name}.${stamp}.md`), await adapter.read(this.store.path()));
       this.settings.backupDone = true;
       await this.saveSettings();
-      new Notice('Task Calendar : copie de sécurité du fichier de tâches créée.');
+      new Notice(t('main.backupOk'));
     } catch (error) {
-      console.error('Task Calendar : sauvegarde impossible', error);
-      new Notice('Task Calendar : la copie de sécurité a échoué (voir la console).');
+      console.error('Weekly Task Calendar: backup failed', error);
+      new Notice(t('main.backupFail'));
     }
   }
 }

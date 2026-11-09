@@ -1,4 +1,6 @@
+import { parseDayHeader, parseWeekHeader } from './headers';
 import { formatHours, parseTrailingHours } from './hours';
+import type { Lang } from './i18n';
 
 export type DocLine =
   | { kind: 'task'; raw: string; eol: string; indent: number; done: boolean; body: string }
@@ -6,10 +8,14 @@ export type DocLine =
 
 export type TaskLine = Extract<DocLine, { kind: 'task' }>;
 
-/** `eol` : fin de ligne dominante (la premiere rencontree) pour les lignes creees. */
+/**
+ * `eol` : fin de ligne dominante (la premiere rencontree) pour les lignes creees.
+ * `headerLang` : langue des en-tetes deja presents ("Semaine du" / "Week of", puis noms de jours), ou null.
+ */
 export interface Doc {
   lines: DocLine[];
   eol: string;
+  headerLang: Lang | null;
 }
 
 const TASK_LINE = /^(\s*)- \[( |x|X)\](?: (.*))?$/;
@@ -49,7 +55,19 @@ export function parseDoc(text: string): Doc {
     start = newline + 1;
   }
   const firstEol = lines.find((line) => line.eol !== '')?.eol ?? '\n';
-  return { lines, eol: firstEol };
+  return { lines, eol: firstEol, headerLang: detectHeaderLang(lines) };
+}
+
+/** Le premier en-tete de semaine decide ; a defaut, le premier nom de jour. */
+function detectHeaderLang(lines: DocLine[]): Lang | null {
+  let dayLang: Lang | null = null;
+  for (const line of lines) {
+    if (line.kind !== 'other') continue;
+    const week = parseWeekHeader(line.raw);
+    if (week) return week.lang;
+    if (dayLang === null) dayLang = parseDayHeader(line.raw)?.lang ?? null;
+  }
+  return dayLang;
 }
 
 export function serializeDoc(doc: Doc): string {
