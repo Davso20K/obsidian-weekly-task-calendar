@@ -54,7 +54,11 @@ And the same data as a plain Markdown file, in reading mode:
 
 ## Install
 
-Not yet in the community plugin list. Requires Obsidian 1.15.0 or later. To install manually:
+Requires Obsidian 1.15.0 or later.
+
+**From Obsidian:** open **Settings → Community plugins → Browse**, search for **Weekly Task Calendar**, then **Install** and **Enable**.
+
+**Manually:**
 
 1. Download `main.js`, `manifest.json` and `styles.css` from the
    [latest release](https://github.com/Davso20K/obsidian-weekly-task-calendar/releases/latest).
