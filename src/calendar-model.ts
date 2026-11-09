@@ -1,7 +1,8 @@
 import { daySummary, weekMinutes } from './calendar-index';
 import type { CalendarIndex } from './calendar-index';
-import { monthGrid } from './dates';
+import { WEEKDAYS_FR, formatFrDate, monthGrid, weekdayIndex } from './dates';
 import { formatHours } from './hours';
+import type { LineRef } from './ops';
 
 export const MONTHS_FR: readonly string[] = [
   'janvier',
@@ -59,4 +60,42 @@ export function cellSummaryText(cell: Pick<CellModel, 'total' | 'done' | 'minute
   if (cell.total === 0) return '';
   const base = `${cell.done}/${cell.total} ✓`;
   return cell.minutes > 0 ? `${base} · ${formatHours(cell.minutes)}` : base;
+}
+
+export interface DayRowModel {
+  ref: LineRef;
+  done: boolean;
+  text: string;
+  hoursText: string;
+  hoursUnrecognized: boolean;
+  depth: number;
+  empty: boolean;
+}
+
+export interface DayModel {
+  title: string;
+  summary: { total: number; done: number; minutes: number };
+  rows: DayRowModel[];
+  freeLines: string[];
+}
+
+/** Ce que le panneau du jour affiche : une ligne par tache, et les notes libres en lecture seule. */
+export function buildDayModel(index: CalendarIndex, date: string): DayModel {
+  const day = index.days.get(date);
+  const summary = daySummary(day);
+  const base = `${WEEKDAYS_FR[weekdayIndex(date)]} ${formatFrDate(date)}`;
+  return {
+    title: summary.minutes > 0 ? `${base} · ${formatHours(summary.minutes)}` : base,
+    summary,
+    rows: (day?.tasks ?? []).map((task) => ({
+      ref: { index: task.index, raw: task.raw },
+      done: task.done,
+      text: task.text,
+      hoursText: task.minutes ? formatHours(task.minutes) : '',
+      hoursUnrecognized: task.hoursUnrecognized,
+      depth: task.depth,
+      empty: task.empty,
+    })),
+    freeLines: (day?.freeLines ?? []).map((line) => line.raw).filter((raw) => raw.trim() !== ''),
+  };
 }
